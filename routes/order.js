@@ -37,7 +37,7 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
 });
 
 //DELETE ORDER. ONLY ADMIN
-router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
+router.delete("/:id", verifyTokenAndAuthorization, async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
     res.status(200).json("Order has been deleted...");
@@ -52,6 +52,7 @@ router.get("/find/:userId", verifyTokenAndAuthorization, async (req, res) => {
     const orders = await Order.find({ userId: req.params.userId });
     res.status(200).json(orders);
   } catch (err) {
+    console.log(err);
     res.status(500).json(err);
   }
 });
