@@ -62,19 +62,27 @@ router.get("/", verifyTokenAndAdmin, async (req, res) => {
     const orders = await Order.find();
     res.status(200).json(orders);
   } catch (err) {
-    res.status(500).json(err);
+    return res.status(500).json(err);
   }
 });
 
 // GET MONTHLY INCOME. ONLY ADMIN
 router.get("/income", verifyTokenAndAdmin, async (req, res) => {
+
+  const productId = req.query.proId;
+
   const date = new Date();
   const lastMonth = new Date(date.setMonth(date.getMonth() - 1));
   const previousMonth = new Date(new Date().setMonth(lastMonth.getMonth() - 1));
 
   try {
     const income = await Order.aggregate([
-      { $match: { createdAt: { $gte: previousMonth } } },
+      { $match: { 
+        createdAt: { $gte: previousMonth }, 
+        ...(productId && {
+        products: {$elemMatch: {productId}},
+      }),
+     }},
       {
         $project: {
           month: { $month: "$createdAt" },
@@ -88,10 +96,39 @@ router.get("/income", verifyTokenAndAdmin, async (req, res) => {
         },
       },
     ]);
+    // console.log("income", income);
     res.status(200).json(income);
   } catch (err) {
     res.status(500).json(err);
   }
 });
+
+//GET ANNUAL MONTHLY SALES
+router.get("/monthlysales", verifyTokenAndAdmin, async (req, res) => {
+  const date = new Date();
+  const lastYear = new Date(date.setFullYear(date.getFullYear() - 1));
+  try {
+      const income = await Order.aggregate([
+        { $match: {createdAt: { $gte: lastYear}}},
+        {
+          $project: {
+            month: {$month: "$createdAt"},
+            sales: "$amount",
+          },
+        },
+        {
+          $group: {
+            _id: "$month",
+            total: { $sum: "$sales"},
+          },
+        },
+      ]);
+      // console.log("income", income);
+      res.status(200).json(income);
+  } catch (err) {
+      console.log(err);
+      res.status(500).json(err);
+  }
+})
 
 module.exports = router;
