@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const {
   verifyToken,
   verifyTokenAndAuthorization,
@@ -10,9 +11,40 @@ const router = require("express").Router();
 //CREATE ORDER. AUTH USERS
 
 router.post("/", verifyToken, async (req, res) => {
-  const newOrder = new Order(req.body);
-
+  
   try {
+
+    if (!req.body.products) throw new Error("Not able to create order")
+    console.log("body nè", req.body.products);
+    const productsToUpdate = await Promise.all(
+        req.body.products.map(async (request) => {
+        const existed = await Product.findById(request.productId);
+        console.log("existed", existed);
+        let newStock = existed.stock;
+
+        if (request.quantity <= existed.stock) {
+          newStock = existed.stock - request.quantity;
+        } else {
+          console.log(
+            "Sold out",
+            request.productId.name,
+            request.quantity,
+            existed.stock
+          );
+          throw new Error("Sold out product");
+        }
+
+        return { _id: existed._id, newStock };
+      })
+    );
+    await Promise.all(
+      productsToUpdate.map(async (product) => {
+        await Product.findByIdAndUpdate(product._id, {
+          stock: product.newStock,
+        });
+      })
+    );
+    const newOrder = new Order(req.body);
     const savedOrder = await newOrder.save();
     res.status(200).json(savedOrder);
   } catch (err) {
@@ -36,8 +68,8 @@ router.put("/:id", verifyTokenAndAdmin, async (req, res) => {
   }
 });
 
-//DELETE ORDER. ONLY ADMIN
-router.delete("/:id", verifyTokenAndAuthorization, async (req, res) => {
+//DELETE ORDER. 
+router.delete("/:id", verifyToken, async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
     res.status(200).json("Order has been deleted...");
