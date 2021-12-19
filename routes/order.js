@@ -15,11 +15,11 @@ router.post("/", verifyToken, async (req, res) => {
   try {
 
     if (!req.body.products) throw new Error("Not able to create order")
-    console.log("body nè", req.body.products);
+    // console.log("body nè", req.body.products);
     const productsToUpdate = await Promise.all(
         req.body.products.map(async (request) => {
         const existed = await Product.findById(request.productId);
-        console.log("existed", existed);
+        // console.log("existed", existed);
         let newStock = existed.stock;
 
         if (request.quantity <= existed.stock) {

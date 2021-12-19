@@ -14,14 +14,27 @@ router.post("/", verifyTokenAndAdmin, async (req, res) => {
 })
 
 //UPDATE PRODUCT. ONLY ADMIN
-router.put("/:id", verifyTokenAndAuthorization, async (req, res) => {
- 
+router.put("/:id", async (req, res) => {
+    const updateObject = {};
+    // console.log(req.body,'body');
+    const {title, price, stock, img} = req.body
+    // console.log(title, price, stock, img);
+    if(title){
+        updateObject.title = title
+    }
+    if(price){
+        updateObject.price = price
+    }
+    if(stock){
+        updateObject.stock = stock
+    }
+    if(img){
+        updateObject.img = img
+    }
     try {
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id, 
-            {
-            $set: req.body
-            }, 
+            updateObject,
             {new: true}
         );
         res.status(200).json(updatedProduct);
